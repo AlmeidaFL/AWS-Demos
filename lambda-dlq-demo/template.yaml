@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda function with DLQ for demo failure scenario
+
+Resources:
+  DlqQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: LambdaDlqQueue
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaDlqRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaSQSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt DlqQueue.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  FailingLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: FailingLambda
+      Handler: index.handler
+      Runtime: nodejs18.x
+      CodeUri: ./lambda/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt DlqQueue.Arn

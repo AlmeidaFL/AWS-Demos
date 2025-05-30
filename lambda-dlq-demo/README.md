@@ -34,21 +34,25 @@ lambda-dlq-demo/
 ### 1. Create an S3 Bucket (only once)
 
 ```bash
-# s3 bucket is required
+# S3 bucket is required
 aws s3 mb unique-bucket-name --region your-region
 
-# package SAM template
+# Ensure the `template.yaml` file is created before running this command.
+
+# Package SAM template
 aws cloudformation package --template-file template.yaml --s3-bucket unique-bucket-name --output-template-file packaged.yaml
 
-# deploy stack
+# Deploy stack
 aws cloudformation deploy --template-file packaged.yaml --stack-name lambda-dlq-demo --capabilities CAPABILITY_NAMED_IAM --region your-region
 
-# testing failure
+# Testing failure
 aws lambda invoke --function-name FailingLambda --payload '{}' --invocation-type Event response.json
 
-# reading from queue
+# Reading from queue
 aws sqs receive-message --queue-url queue-url --max-number-of-messages 1
 
-# cleaning up stack
+# Cleaning up stack
 aws cloudformation delete-stack --stack-name lambda-dlq-demo
+
+# (Optional) delete S3 bucket
 ```

@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "Lambda with destinations (success and failure) demo"
+
+Resources:
+  SuccessQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: SuccessQueue
+  
+  FailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: FailureQueue
+  
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "LambdaDestinationRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaSQSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - !GetAtt FailureQueue.Arn
+                  - !GetAtt SuccessQueue.Arn
+                Action:
+                  - sqs:SendMessage
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - logs:PutLogEvents
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+  
+  DestinationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DestinationLambda
+      Handler: index.handler
+      Runtime: nodejs18.x
+      CodeUri: ./lambda/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      EventInvokeConfig:
+        MaximumRetryAttempts: 2
+        DestinationConfig:
+          OnSuccess:
+            Type: SQS
+            Destination: !GetAtt SuccessQueue.Arn
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt FailureQueue.Arn

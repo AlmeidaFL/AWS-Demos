@@ -51,7 +51,7 @@ Resources:
       CodeUri: ./lambda/
       Role: !GetAtt LambdaExecutionRole.Arn
       EventInvokeConfig:
-        MaximumRetryAttempts: 2
+        MaximumRetryAttempts: 0
         DestinationConfig:
           OnSuccess:
             Type: SQS

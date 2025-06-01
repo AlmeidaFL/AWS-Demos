@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Demo - REsT vs HTTP API Gateway
+
+Resources:
+  LambdaMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: LambdaMessageFunction
+      Runtime: nodejs18.x
+      Handler: app.js
+      CodeUri: ./lambda/
+      MemorySize: 128
+      Timeout: 5
+      Events:
+        MyHttpApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /hello
+            Method: GET
+            ApiId: !Ref HttpApi
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: RestApi
+      StageName: prod
+      EndpointConfiguration: REGIONAL
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: "REST API Demo"
+          version: "1.0"
+        paths:
+          /hello:
+            get:
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaMessageFunction.Arn}/invocations"
+                httpMethod: POST
+                type: aws_proxy
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Name: HttpApi
+      StageName: $default
+
+Outputs:
+  RestApiUrl:
+    Description: "Invoke URL for Rest API"
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/hello"
+  
+  HttpApiUrl:
+    Description: "Invoke URL for Rest API"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"

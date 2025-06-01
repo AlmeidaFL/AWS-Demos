@@ -4,10 +4,18 @@ Description: Lambda with partial batch failure (SQS Event Source Mapping)
 
 
 Resources:
+  SourceDlqQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: SourceDlqQueue
+
   SourceQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: SourceQueue
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SourceDlqQueue.Arn
+        maxReceiveCount: 2
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role

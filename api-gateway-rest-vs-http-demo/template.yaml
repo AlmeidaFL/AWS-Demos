@@ -3,15 +3,40 @@ Transform: AWS::Serverless-2016-10-31
 Description: Demo - REsT vs HTTP API Gateway
 
 Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
   LambdaMessageFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: LambdaMessageFunction
       Runtime: nodejs18.x
-      Handler: app.js
+      Handler: app.handler
       CodeUri: ./lambda/
       MemorySize: 128
       Timeout: 5
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         MyHttpApiEvent:
           Type: HttpApi
@@ -19,6 +44,12 @@ Resources:
             Path: /hello
             Method: GET
             ApiId: !Ref HttpApi
+        MyRestApiEvent:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: GET
+            RestApiId: !Ref RestApi
 
   RestApi:
     Type: AWS::Serverless::Api
@@ -26,18 +57,6 @@ Resources:
       Name: RestApi
       StageName: prod
       EndpointConfiguration: REGIONAL
-      DefinitionBody:
-        swagger: "2.0"
-        info:
-          title: "REST API Demo"
-          version: "1.0"
-        paths:
-          /hello:
-            get:
-              x-amazon-apigateway-integration:
-                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaMessageFunction.Arn}/invocations"
-                httpMethod: POST
-                type: aws_proxy
 
   HttpApi:
     Type: AWS::Serverless::HttpApi
@@ -51,5 +70,5 @@ Outputs:
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/hello"
   
   HttpApiUrl:
-    Description: "Invoke URL for Rest API"
-    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Description: "Invoke URL for HTTP API"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/hello"

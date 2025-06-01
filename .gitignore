@@ -1,2 +1,4 @@
 response.json
 packaged.yaml
+.aws-sam
+samconfig.toml

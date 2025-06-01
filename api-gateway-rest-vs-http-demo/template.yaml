@@ -41,13 +41,13 @@ Resources:
         MyHttpApiEvent:
           Type: HttpApi
           Properties:
-            Path: /hello
+            Path: /hello/{name}
             Method: GET
             ApiId: !Ref HttpApi
         MyRestApiEvent:
           Type: Api
           Properties:
-            Path: /hello
+            Path: /hello/{name}
             Method: GET
             RestApiId: !Ref RestApi
 
@@ -67,8 +67,8 @@ Resources:
 Outputs:
   RestApiUrl:
     Description: "Invoke URL for Rest API"
-    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/hello"
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/hello/{name}"
   
   HttpApiUrl:
     Description: "Invoke URL for HTTP API"
-    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/hello"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/hello/{name}"

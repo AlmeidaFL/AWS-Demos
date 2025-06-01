@@ -6,14 +6,14 @@ This is useful for testing failure handling, alerting, and retry mechanisms.
 
 ---
 
-## ✅ Requirements
+## Requirements
 
 - AWS CLI installed and configured (aws configure)
-- S3 bucket created for packaging artifacts
+- Sufficient permissions to create resources
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 lambda-dlq-demo/
@@ -29,7 +29,7 @@ lambda-dlq-demo/
 
 ---
 
-## 🚀 Step-by-Step Guide
+## Step-by-Step Guide
 
 ### 1. Create an S3 Bucket (only once)
 

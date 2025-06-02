@@ -38,16 +38,28 @@ Resources:
       Timeout: 5
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
-        MyHttpApiEvent:
+        MyHttpApiHelloEvent:
           Type: HttpApi
           Properties:
             Path: /hello/{name}
             Method: GET
             ApiId: !Ref HttpApi
-        MyRestApiEvent:
+        MyHttpApiSearchEvent:
+          Type: HttpApi
+          Properties:
+            Path: /search
+            Method: GET
+            ApiId: !Ref HttpApi
+        MyRestApiHelloEvent:
           Type: Api
           Properties:
             Path: /hello/{name}
+            Method: GET
+            RestApiId: !Ref RestApi
+        MyRestApiSearchEvent:
+          Type: Api
+          Properties:
+            Path: /search
             Method: GET
             RestApiId: !Ref RestApi
 
@@ -65,10 +77,16 @@ Resources:
       StageName: $default
 
 Outputs:
-  RestApiUrl:
-    Description: "Invoke URL for Rest API"
+  RestApiHelloUrl:
+    Description: "Invoke Hello"
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/hello/{name}"
+  RestApiSearchUrl:
+    Description: "Invoke Search"
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/search"
   
-  HttpApiUrl:
-    Description: "Invoke URL for HTTP API"
+  HttpApiHelloUrl:
+    Description: "Invoke Hello"
     Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/hello/{name}"
+  HttpApiHelloUrl:
+    Description: "Invoke Search"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/search"

@@ -2,3 +2,6 @@ response.json
 packaged.yaml
 .aws-sam
 samconfig.toml
+node_modules/
+package.json
+package-lock.json

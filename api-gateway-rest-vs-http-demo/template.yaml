@@ -26,6 +26,10 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/jwt-secret"
 
   LambdaMessageFunction:
     Type: AWS::Serverless::Function
@@ -44,6 +48,8 @@ Resources:
             Path: /hello/{name}
             Method: GET
             ApiId: !Ref HttpApi
+            Auth:
+              Authorizer: LambdaAuth
         MyHttpApiSearchEvent:
           Type: HttpApi
           Properties:
@@ -64,6 +70,37 @@ Resources:
             Path: /search
             Method: GET
             RestApiId: !Ref RestApi
+  
+  LambdaAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: LambdaAuthorizer
+      Runtime: nodejs18.x
+      Handler: authorizer.handler
+      CodeUri: ./auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM: "jwt-secret"
+
+  LambdaAuthorizerInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambdaAuthorizer
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt LambdaAuthorizer.Arn
 
   RestApi:
     Type: AWS::Serverless::Api
@@ -77,6 +114,15 @@ Resources:
     Properties:
       Name: HttpApi
       StageName: $default
+      Auth:
+        Authorizers:
+          LambdaAuth:
+            FunctionArn: !GetAtt LambdaAuthorizer.Arn
+            FunctionInvokeRole: !GetAtt LambdaAuthorizerInvokeRole.Arn
+            Identity:
+              Headers:
+                - Authorization
+            AuthorizerPayloadFormatVersion: "2.0"
 
   MyUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
@@ -85,13 +131,14 @@ Resources:
       Description: "Usage plan to control throttling and quote"
       ApiStages:
         - ApiId: !Ref RestApi
-          Stage: prod
+          Stage: !Ref RestApi.Stage
       Throttle:
         RateLimit: 10
         BurstLimit: 2
       Quota:
         Limit: 5
         Period: MONTH
+    DependsOn: RestApi
   
   MyApiKey:
     Type: AWS::ApiGateway::ApiKey

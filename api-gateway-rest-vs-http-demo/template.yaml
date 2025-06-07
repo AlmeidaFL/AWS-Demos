@@ -109,9 +109,18 @@ Resources:
       StageName: prod
       EndpointConfiguration: REGIONAL
 
+  HttpApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/http-api/${AWS::StackName}-HttpApiAccesLogs"
+      RetentionInDays: 7
+
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      AccessLogSettings:
+        DestinationArn: !GetAtt HttpApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","integrationStatus":"$context.integrationStatus","authorizerError":"$context.authorizer.error","responseLatency":"$context.responseLatency"}'
       Name: HttpApi
       StageName: $default
       Auth:
@@ -123,6 +132,7 @@ Resources:
               Headers:
                 - Authorization
             AuthorizerPayloadFormatVersion: "2.0"
+            EnableSimpleResponses: true
 
   MyUsagePlan:
     Type: AWS::ApiGateway::UsagePlan

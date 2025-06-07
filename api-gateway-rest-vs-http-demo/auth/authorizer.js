@@ -16,16 +16,23 @@ exports.handler = async (event) => {
     if (!secret) {
         const paramName = process.env.JWT_SECRET_PARAM
 
-        const command = new GetParameterCommand({
-            Name: paramName,
-            WithDecryption: true
-        });
+        try {
+            const command = new GetParameterCommand({
+                Name: paramName,
+                WithDecryption: true
+            });
 
-        const result = await ssmClient.send(command);
-        secret = result.Parameter.Value;
+            const result = await ssmClient.send(command);
+            secret = result.Parameter.Value;
+        } catch (ssmError) {
+            return nonAuthorizedPayload;
+        }
+    } else {
+        console.log('Using cached secret');
     }
 
-    const authHeader = event.headers.Authorization || ""
+    const authHeader = event.headers.authorization || ""
+    
     let token;
 
     if (authHeader.startsWith("Bearer ")){
@@ -54,7 +61,7 @@ exports.handler = async (event) => {
             }
         }
     } catch (ex) {
-        console.warn(`Error ocurred: ${ex.message}`)
+        console.error(`JWT verification failed: ${ex.message}`, ex);
         return nonAuthorizedPayload
     }
 }

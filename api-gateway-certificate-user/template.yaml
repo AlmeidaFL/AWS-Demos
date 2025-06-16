@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: mTLS API Gateway
+
+Parameters:
+  CertificateId:
+    Type: String
+    Description: ACM Certificate ID (not ARN)
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 5
+    MemorySize: 128
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+  DemoApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: DemoApi
+      StageName: prod
+      DisableExecuteApiEndpoint: true
+
+  DemoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DemoFunction
+      CodeUri: ./lambda/
+      Handler: app.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: GET
+            RestApiId: !Ref DemoApi
+
+  CustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: mtls.almeidafl.dev
+      RegionalCertificateArn: !Sub arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/${CertificateId}
+      SecurityPolicy: TLS_1_2
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      MutualTlsAuthentication:
+        TruststoreUri: s3://mtls-demo-certs/ca.pem
+
+  BasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref CustomDomain
+      RestApiId: !Ref DemoApi
+      Stage: prod
+
+

@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Static Website with S3 + CloudFront + OAC
+
+Resources:
+  StaticSiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  
+  StaticSiteOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: StaticSiteOAC
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+        Description: CloudFront access to S3 via OAC
+  
+  StaticSiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: StaticS3Origin
+            DomainName: !GetAtt StaticSiteBucket.RegionalDomainName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref StaticSiteOAC
+        DefaultCacheBehavior:
+          TargetOriginId: StaticS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+        PriceClass: PriceClass_100
+
+  StaticSiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StaticSiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${StaticSiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${StaticSiteDistribution}"
+  
+Outputs:
+  CloudFrontURL:
+    Description: "CloudFront URL"
+    Value: !Sub "https://${StaticSiteDistribution.DomainName}"

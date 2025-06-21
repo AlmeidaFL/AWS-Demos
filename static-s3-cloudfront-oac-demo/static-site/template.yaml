@@ -40,6 +40,8 @@ Resources:
           CachedMethods: [GET, HEAD]
           ForwardedValues:
             QueryString: false
+          TrustedKeyGroups:
+            - 8a1dfb62-2288-4e7d-8c70-e1742cf4399b
         PriceClass: PriceClass_100
 
   StaticSiteBucketPolicy:
@@ -62,3 +64,5 @@ Outputs:
   CloudFrontURL:
     Description: "CloudFront URL"
     Value: !Sub "https://${StaticSiteDistribution.DomainName}"
+    Export:
+      Name: StaticSite-CloudFrontURL

@@ -1,0 +1,6 @@
+{
+    "CallerReference": "SignedUrlDemo",
+    "Name": "SignedUrlDemoKey",
+    "EncodedKey": "EncondedKeyhere",
+    "Comment": "Key used to sign s3 requests"
+}

@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda that generates CloudFront signed URL
+
+Resources:
+  
+  SignedUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: SignedUrlFunction
+      Handler: app.handler
+      Runtime: nodejs22.x
+      CodeUri: .
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables:
+          CF_PRIVATE_KEY_PARAM: /cloudfront/private-key
+          CF_KEY_PAIR_ID_PARAM: /cloudfront/key-pair-id
+          CLOUDFRONT_URL: !ImportValue StaticSite-CloudFrontURL
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action: 
+              - ssm:GetParameter
+            Resource:
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AcountId}:parameter/cloudfront/private-key
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AcountId}:parameter/cloudfront/key-pair-id
+
+Outputs:
+  SignedUrlFunctionArn:
+    Value: !GetAtt SignedUrlFunction.Arn
+  
+  SignedUrlFunctionUrl:
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/lambda/home?region=${AWS::Region}#/functions/${SignedUrlFunction}

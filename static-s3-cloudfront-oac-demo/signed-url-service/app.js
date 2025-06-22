@@ -1,7 +1,7 @@
-const fs = require('fs')
 const crypto = require('crypto')
-const AWS = require('aws-sdk')
-const ssm = new AWS.SSM()
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
+
+const ssmClient = new SSMClient();
 
 const CLOUDFRONT_URL = process.env.CLOUDFRONT_URL
 
@@ -10,8 +10,10 @@ exports.handler = async (event) => {
     const expires = Math.floor(Date.now() / 1000) + 60 // 1 minute
 
     const privateKey = await getParam(process.env.CF_PRIVATE_KEY_PARAM, true)
-    const keyPairId = await getParam(process.env.CF_KEY_PAIR_ID)
+    const keyPairId = await getParam(process.env.CF_KEY_PAIR_ID_PARAM)
+    
 
+    console.log(`Cloudfront url : ${CLOUDFRONT_URL} path ${path} private key ${privateKey} keyPairId ${keyPairId}`)
     const policy = JSON.stringify({
         Statement: [{
             Resource: `${CLOUDFRONT_URL}${path}`,
@@ -21,7 +23,7 @@ exports.handler = async (event) => {
         }]
     })
 
-    const signer = crypto.sign('RSA-SHA1')
+    const signer = crypto.createSign('RSA-SHA1')
     signer.update(policy)
     const signature = toCloudFrontSafeBase64(signer.sign(privateKey, 'base64'))
     const encondedPolicy = toCloudFrontSafeBase64(Buffer.from(policy).toString('base64'))
@@ -39,6 +41,10 @@ function toCloudFrontSafeBase64(input) {
 }
 
 async function getParam(name, decrypt = false){
-    const result = await ssm.getParameter( {Name: name, WithDecryption: decrypt}).promise()
+    const command = new GetParameterCommand({
+        Name: name,
+        WithDecryption: decrypt
+    });
+    const result = await ssmClient.send(command)
     return result.Parameter.Value
 }

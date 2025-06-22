@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Static Website with S3 + CloudFront + OAC
 
+Parameters:
+  TrustedKeyGroupId:
+    Type: String
+    Description: Trusted Key Group Id related to Signed URL Service
+
 Resources:
   StaticSiteBucket:
     Type: AWS::S3::Bucket
@@ -41,8 +46,17 @@ Resources:
           ForwardedValues:
             QueryString: false
           TrustedKeyGroups:
-            - 8a1dfb62-2288-4e7d-8c70-e1742cf4399b
+            - !Sub ${TrustedKeyGroupId}
         PriceClass: PriceClass_100
+        CustomErrorResponses:
+          - ErrorCode: 403 # Access denied
+            ResponsePagePath: /error.html
+            ResponseCode: 200
+            ErrorCachingMinTTL: 5
+          - ErrorCode: 404 # Not Found
+            ResponsePagePath: /error.html
+            ResponseCode: 200
+            ErrorCachingMinTTL: 5
 
   StaticSiteBucketPolicy:
     Type: AWS::S3::BucketPolicy

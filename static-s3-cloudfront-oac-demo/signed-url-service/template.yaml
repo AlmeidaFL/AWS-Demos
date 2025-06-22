@@ -8,11 +8,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: SignedUrlFunction
+      FunctionUrlConfig:
+        AuthType: NONE
       Handler: app.handler
       Runtime: nodejs22.x
       CodeUri: .
       MemorySize: 128
-      Timeout: 5
+      Timeout: 30
       Environment:
         Variables:
           CF_PRIVATE_KEY_PARAM: /cloudfront/private-key
@@ -24,8 +26,8 @@ Resources:
             Action: 
               - ssm:GetParameter
             Resource:
-              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AcountId}:parameter/cloudfront/private-key
-              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AcountId}:parameter/cloudfront/key-pair-id
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudfront/private-key
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudfront/key-pair-id
 
 Outputs:
   SignedUrlFunctionArn:

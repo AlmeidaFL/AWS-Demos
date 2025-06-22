@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Static Website with S3 + CloudFront + OAC
+Description: Static Website with S3 + CloudFront + OAC + Signed URL
 
 Parameters:
   TrustedKeyGroupId:

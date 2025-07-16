@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda Producer -> Kinesis -> Lambda Consumer
+
+Resources:
+  KinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+      RetentionPeriodHours: 24
+
+  LambdaProducer:
+    FunctionName: LambdaProducer
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/
+      Handler: producer.handler
+      Runtime: python3.13
+      Timeout: 10
+      Environment:
+        Variables:
+          STREAM_NAME: !Ref KinesisStream
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: kinesis:PutRecord
+            Resource: !GetAtt KinesisStream.Arn
+  
+  LambdaConsumer:
+    FunctionName: LambdaConsumer
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/
+      Handler: consumer.handler
+      Runtime: python3.13
+      Timeout: 10
+      Events:
+        KinesisEvent:
+          Type: Kinesis
+          Properties:
+            Stream: !GetAtt KinesisStream.Arn
+            StartingPosition: LATEST
+            BatchSize: 10
+            Enabled: true
+      Policies:
+        - KinesisStreamReadPolicy:
+            StreamName: !Ref KinesisStream

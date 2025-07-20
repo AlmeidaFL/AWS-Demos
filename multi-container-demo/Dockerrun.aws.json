@@ -1,0 +1,23 @@
+{
+    "AWSEBDockerrunVersion":2,
+    "containerDefinitions": [
+        {
+            "name": "web",
+            "image": "<conta>.dkr.ecr.sa-east-1.amazonaws.com/app:web",
+            "essential": true,
+            "memory": 128,
+            "portMappings": [
+                {
+                    "hostPort": 80,
+                    "containerPort": 80
+                }
+            ]
+        },
+        {
+            "name": "worker",
+            "image": "<conta>.dkr.ecr.sa-east-1.amazonaws.com/app:worker",
+            "essential": false,
+            "memory": 128
+        }
+    ]
+}

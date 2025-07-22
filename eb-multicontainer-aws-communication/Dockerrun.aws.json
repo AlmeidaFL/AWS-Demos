@@ -1,0 +1,39 @@
+{
+    "AWSEBDockerrunVersion": 2,
+    "containerDefinitions": [
+        {
+            "name": "web",
+            "image": "conta.dkr.ecr.sa-east-1.amazonaws.com/multicontainer-aws-demo:web",
+            "essential": true,
+            "memory": 256,
+            "portMappings": [
+                { "hostPort": 5000, "containerPort": 5000}
+            ],
+            "environment": [
+                { "name": "BUCKET", "value": null },
+                { "name": "QUEUE_URL", "value": null },
+                { "name": "TABLE_NAME", "value": null }
+            ],
+            "healthCheck": {
+                "command": ["CMD-SHELL", "curl -f http://localhost:5000/docs || exit 1"],
+                "interval": 30,
+                "retries": 3,
+                "timeout": 5,
+                "startPeriod": 20
+            }
+        },
+        {
+            "name": "worker",
+            "image": "conta.dkr.ecr.sa-east-1.amazonaws.com/multicontainer-aws-demo:worker",
+            "essential": false,
+            "memory": 256,
+            "links": ["web"],
+            "environment": [
+                { "name": "BUCKET", "value": null },
+                { "name": "QUEUE_URL", "value": null },
+                { "name": "TABLE_NAME", "value": null }
+            ]
+        }
+        
+    ]
+}

@@ -7,6 +7,35 @@ Globals:
       MemorySize: 128
 
 Resources:
+  CodeDeployServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codedeploy.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda
+      Policies:
+        - PolicyName: LambdaInvokePermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:GetAlias
+                  - lambda:UpdateAlias
+                  - lambda:PublishVersion
+                Resource: '*'
+
   HelloFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -18,6 +47,7 @@ Resources:
       AutoPublishAlias: live
       DeploymentPreference:
         Type: Canary10Percent5Minutes
+        Role: !GetAtt CodeDeployServiceRole.Arn
         Alarms:
           - !Ref HelloFunctionErrorsAlarm
         Hooks:
@@ -38,6 +68,14 @@ Resources:
       CodeUri: hooks/
       Handler: pretraffic.lambda_handler
       Timeout: 60
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - codedeploy:PutLifecycleEventHookExecutionStatus
+            Resource: '*'
+      DeploymentPreference:
+        Enabled: false
 
   PostTrafficHook:
     Type: AWS::Serverless::Function
@@ -47,6 +85,14 @@ Resources:
       CodeUri: hooks/
       Handler: posttraffic.lambda_handler
       Timeout: 60
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - codedeploy:PutLifecycleEventHookExecutionStatus
+            Resource: '*'
+      DeploymentPreference:
+        Enabled: false
 
   HelloFunctionErrorsAlarm:
     Type: AWS::CloudWatch::Alarm

@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda with code deploy
+
+Globals:
+  Function:
+      MemorySize: 128
+
+Resources:
+  HelloFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: HelloFunction
+      CodeUri: hello/
+      Handler: app.lambda_handler
+      Runtime: python3.13
+      Timeout: 3
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent5Minutes
+        Alarms:
+          - !Ref HelloFunctionErrorsAlarm
+        Hooks:
+          PreTraffic: !Ref PreTrafficHook
+          PostTraffic: !Ref PostTrafficHook
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+
+  PreTrafficHook:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: PreTrafficHook
+      Runtime: python3.13
+      CodeUri: hooks/
+      Handler: pretraffic.lambda_handler
+      Timeout: 60
+
+  PostTrafficHook:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.13
+      FunctionName: PostTrafficHook
+      CodeUri: hooks/
+      Handler: posttraffic.lambda_handler
+      Timeout: 60
+
+  HelloFunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: HelloFunctionErrorsAlarm
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref HelloFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  HelloFunctionApi:
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello"

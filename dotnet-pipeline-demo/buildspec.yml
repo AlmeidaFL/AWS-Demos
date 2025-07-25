@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      dotnet: 9.0
+  
+  pre_build:
+    commands:
+      - cd dotnet-pipeline-demo
+      - echo Restoring .NET packages...
+      - dotnet restore ProductService/ProductService.csproj
+  
+  build:
+    commands:
+      - echo Building the project...
+      - dotnet build ProductService/ProductService.csproj --configuration Release --no-restore
+  
+  post_build:
+    commands:
+      - echo Publishing application...
+      - dotnet publish ProductService/ProductService.csproj --configuration Release --output publish
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts/**/*
+    - publish/**/*
+  
+  discard-paths: no
+
+cache:
+  paths:
+    - ~/.nuget/packages/**/*

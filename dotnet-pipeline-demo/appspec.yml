@@ -1,0 +1,27 @@
+version: 0.0
+os: linux
+
+files:
+  - source: publish/
+    destination: /home/ec2-user/productservice/
+
+hooks:
+  ApplicationStop:
+    - location: scripts/stop.sh
+      timeout: 300
+      runas: ec2-user
+  
+  BeforeInstall:
+    - location: scripts/stop.sh
+      timeout: 300
+      runas: ec2-user
+
+  AfterInstall:
+    - location: scripts/install_dependencies.sh
+      timeout: 300
+      runas: ec2-user
+  
+  ApplicationStart:
+    - location: scripts/start.sh
+      timeout: 300
+      runas: ec2-user
